@@ -1,0 +1,17 @@
+#+TITLE: ESWM
+#+SUBTITLE: A standalone wm for emacs.
+
+* A psudo elisp interpreter to manage your windows
+Eswm aims to provide an emacs like configuration experiance without
+bogging down your text editor or your window manager.
+
+Eswm is still in early alpha.
+
+To build eswm run the following
+#+begin_src sh
+git clone https://github.com/delta1024/eswm.git
+cd eswm/tools
+./bootstrap.sh
+cd ../Debug
+make -j9 # Replace with however many cores you have plus one.
+#+end_src

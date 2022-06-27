@@ -1,0 +1,39 @@
+#+TITLE: Exwm Syntax
+#+subtitle: Syntax rules for parsing psudo-elsip code.
+* declaration
+** funDecl
+** varDecl
+** statement
+*** exprStmt
+*** forStmt
+*** ifStmt
+*** printStmt
+*** returnStmt
+*** whileStatement
+*** block
+* General Lisp Syntax
+** S-Exp   
+
+"(" Atom | List ")" ;
+                       
+** Atom
+
+Number | Symbol ;
+                       
+** List
+(" " Atom | List  " ")* ;
+                       
+** Symbol
+Letters | Numbers | non-alphanemeric chars ;
+	               
+** Letters
+"a" ... "z" | "A" ... "Z" | "_" ;
+	               
+** Numbers
+"0" ... "9";
+
+** non-alphanemeric chars
+"~" | "!" | "@" | "#" | "$" | "&"; 
+
+
+
