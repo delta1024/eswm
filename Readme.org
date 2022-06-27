@@ -7,11 +7,9 @@ bogging down your text editor or your window manager.
 
 Eswm is still in early alpha.
 
+
 To build eswm run the following
 #+begin_src sh
 git clone https://github.com/delta1024/eswm.git
-cd eswm/tools
-./bootstrap.sh
-cd ../Debug
-make -j9 # Replace with however many cores you have plus one.
+cargo build
 #+end_src
