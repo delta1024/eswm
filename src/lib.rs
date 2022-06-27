@@ -127,11 +127,13 @@ pub mod debug {
 
         let instruction = OpCode::from(chunk.code[offset]);
         match instruction {
-            OpCode::Return | OpCode::Negate
-		| OpCode::Add | OpCode::Subtract
-		| OpCode::Multiply | OpCode::Divide => simple_instruction(instruction, offset),
+            OpCode::Return
+            | OpCode::Negate
+            | OpCode::Add
+            | OpCode::Subtract
+            | OpCode::Multiply
+            | OpCode::Divide => simple_instruction(instruction, offset),
             OpCode::Constant => constant_instruction(instruction, chunk, offset),
-
         }
     }
 
@@ -144,4 +146,3 @@ pub mod debug {
         }
     }
 }
-
