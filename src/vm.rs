@@ -17,7 +17,7 @@
 use crate::compiler::compile;
 use crate::lib::chunk::{Chunk, OpCode};
 use crate::lib::debug::disassemble_instruction;
-use crate::lib::value::{print_value, Value};
+use crate::lib::value::{print_value, Value, ValueType};
 use std::result::Result;
 
 const STACK_MAX: usize = 256;
@@ -46,7 +46,7 @@ pub struct Vm {
 
 fn generate_stack() -> Vec<Value> {
     let mut vector = Vec::new();
-    vector.resize(STACK_MAX, 0.0);
+    vector.resize(STACK_MAX, Value::None);
     vector
 }
 
@@ -57,7 +57,7 @@ impl Vm {
             chunk: None,
             ip: &mut 0,
             stack,
-            stack_top: &mut 0.0,
+            stack_top: &mut Value::None,
         };
         vm.reset_stack();
         vm
@@ -65,6 +65,16 @@ impl Vm {
 
     fn reset_stack(&mut self) {
         self.stack_top = &mut self.stack[0];
+    }
+
+    fn runtime_error(&mut self, message: &str) {
+        eprintln!("{}", message);
+
+        let instruction =
+            unsafe { (self.ip.offset_from(&self.chunk.as_ref().unwrap().code[0]) - 1) as usize };
+        let line = self.chunk.as_ref().unwrap().lines[instruction];
+        eprintln!("[line {}] in script", line);
+        self.reset_stack();
     }
 
     pub fn interpret(&mut self, source: &str) -> InterpretResult<()> {
@@ -75,9 +85,9 @@ impl Vm {
         self.run()
     }
 
-    fn push(&mut self, value: Value) {
+    fn push<T: Into<Value>>(&mut self, value: T) {
         unsafe {
-            *self.stack_top = value;
+            *self.stack_top = value.into();
             self.stack_top = self.stack_top.add(1);
         }
     }
@@ -89,6 +99,9 @@ impl Vm {
         }
     }
 
+    fn peek(&self, distance: usize) -> Value {
+        unsafe { *self.stack_top.sub(1).sub(distance) }
+    }
     fn read_byte(&mut self) -> u8 {
         let instruction: u8 = unsafe { *self.ip };
 
@@ -103,6 +116,9 @@ impl Vm {
     }
 
     fn binary_op(&mut self, op: BinaryOp) {
+        if !self.peek(0).is_type(ValueType::Number) || !self.peek(1).is_type(ValueType::Number) {
+            self.runtime_error("Operands must be numbers.");
+        }
         let b = self.pop();
         let a = self.pop();
         self.push(match op {
@@ -155,9 +171,16 @@ impl Vm {
                     self.push(constant);
                 }
                 OpCode::Negate => {
-                    let val = -(self.pop());
+                    if !self.peek(0).is_type(ValueType::Number) {
+                        self.runtime_error("Operand must be a number.");
+                        return Err(VmErr::RuntimeError);
+                    }
+                    let val = -(self.pop().as_number());
                     self.push(val);
                 }
+                OpCode::Nil => self.push(Value::None),
+                OpCode::True => self.push(true),
+                OpCode::False => self.push(false),
                 OpCode::Add => self.binary_op(BinaryOp::Add),
                 OpCode::Subtract => self.binary_op(BinaryOp::Sub),
                 OpCode::Divide => self.binary_op(BinaryOp::Div),

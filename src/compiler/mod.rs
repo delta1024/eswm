@@ -1,3 +1,19 @@
+// eswm -- Emacs Standalown WindowManager
+// Copyright (C) 2022 Jacob Stannix
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 extern crate eswm_proc;
 #[cfg(feature = "debug_print_code")]
 use crate::lib::debug::disassemble_chunk;
@@ -7,7 +23,6 @@ use crate::lib::{
 };
 use crate::vm::{InterpretResult, VmErr};
 use eswm_proc::rule;
-use std::ops::Add;
 
 mod scanner;
 use scanner::{Scanner, Token, TokenType};
@@ -77,8 +92,8 @@ impl<'a, 'b> Parser<'a, 'b> {
         self.emit_byte(OpCode::Return as u8);
     }
 
-    fn make_constant(&mut self, value: Value) -> u8 {
-        let constant = self.chunk.constant(value);
+    fn make_constant<T: Into<Value>>(&mut self, value: T) -> u8 {
+        let constant = self.chunk.constant(value.into());
         if constant > u8::MAX {
             self.error("Too many constants in one chunk");
             0
@@ -87,7 +102,7 @@ impl<'a, 'b> Parser<'a, 'b> {
         }
     }
 
-    fn emit_constant(&mut self, constant: Value) {
+    fn emit_constant<T: Into<Value>>(&mut self, constant: T) {
         let constant = self.make_constant(constant);
         self.emit_bytes(OpCode::Constant as u8, constant);
     }
@@ -185,6 +200,15 @@ fn binary(parser: &mut Parser) {
         TokenType::Minus => parser.emit_byte(OpCode::Subtract as u8),
         TokenType::Star => parser.emit_byte(OpCode::Multiply as u8),
         TokenType::Slash => parser.emit_byte(OpCode::Divide as u8),
+        _ => unreachable!(),
+    }
+}
+
+fn literal(parser: &mut Parser) {
+    match parser.previous.as_ref().unwrap().id {
+        TokenType::False => parser.emit_byte(OpCode::False as u8),
+        TokenType::True => parser.emit_byte(OpCode::True as u8),
+        TokenType::Nil => parser.emit_byte(OpCode::Nil as u8),
         _ => unreachable!(),
     }
 }
@@ -307,17 +331,17 @@ const RULES: [ParseRule; 40] = [
     rule!((TokenType::And, None, None, Precedence::None)),
     rule!((TokenType::Class, None, None, Precedence::None)),
     rule!((TokenType::Else, None, None, Precedence::None)),
-    rule!((TokenType::False, None, None, Precedence::None)),
+    rule!((TokenType::False, Some(literal), None, Precedence::None)),
     rule!((TokenType::For, None, None, Precedence::None)),
     rule!((TokenType::Fun, None, None, Precedence::None)),
     rule!((TokenType::If, None, None, Precedence::None)),
-    rule!((TokenType::Nil, None, None, Precedence::None)),
+    rule!((TokenType::Nil, Some(literal), None, Precedence::None)),
     rule!((TokenType::Or, None, None, Precedence::None)),
     rule!((TokenType::Print, None, None, Precedence::None)),
     rule!((TokenType::Return, None, None, Precedence::None)),
     rule!((TokenType::Super, None, None, Precedence::None)),
     rule!((TokenType::This, None, None, Precedence::None)),
-    rule!((TokenType::True, None, None, Precedence::None)),
+    rule!((TokenType::True, Some(literal), None, Precedence::None)),
     rule!((TokenType::Var, None, None, Precedence::None)),
     rule!((TokenType::While, None, None, Precedence::None)),
     rule!((TokenType::Error, None, None, Precedence::None)),
