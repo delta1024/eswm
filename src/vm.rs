@@ -27,6 +27,8 @@ enum BinaryOp {
     Sub,
     Div,
     Mul,
+    Less,
+    Greater,
 }
 
 #[allow(dead_code)]
@@ -48,6 +50,10 @@ fn generate_stack() -> Vec<Value> {
     let mut vector = Vec::new();
     vector.resize(STACK_MAX, Value::None);
     vector
+}
+
+fn is_falsy(value: Value) -> bool {
+    value.is_type(ValueType::Nil) || (value.is_type(ValueType::Bool) && !value.as_bool())
 }
 
 impl Vm {
@@ -102,6 +108,8 @@ impl Vm {
     fn peek(&self, distance: usize) -> Value {
         unsafe { *self.stack_top.sub(1).sub(distance) }
     }
+
+    
     fn read_byte(&mut self) -> u8 {
         let instruction: u8 = unsafe { *self.ip };
 
@@ -126,6 +134,8 @@ impl Vm {
             BinaryOp::Sub => a - b,
             BinaryOp::Div => a / b,
             BinaryOp::Mul => a * b,
+	    BinaryOp::Greater => (a > b).into(),
+	    BinaryOp::Less => (a < b).into(),
         });
     }
 
@@ -181,10 +191,24 @@ impl Vm {
                 OpCode::Nil => self.push(Value::None),
                 OpCode::True => self.push(true),
                 OpCode::False => self.push(false),
+		OpCode::Equal => {
+		    let b = self.pop();
+		    let a = self.pop();
+		    self.push(a == b);
+			
+		}
                 OpCode::Add => self.binary_op(BinaryOp::Add),
+		OpCode::Greater => self.binary_op(BinaryOp::Greater),
+		OpCode::Less => self.binary_op(BinaryOp::Less),
                 OpCode::Subtract => self.binary_op(BinaryOp::Sub),
                 OpCode::Divide => self.binary_op(BinaryOp::Div),
                 OpCode::Multiply => self.binary_op(BinaryOp::Mul),
+                OpCode::Not => {
+                    let val = is_falsy(self.pop());
+                    self.push(val);
+                }
+
+
             }
         }
     }

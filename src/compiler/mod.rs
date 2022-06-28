@@ -21,6 +21,7 @@ use crate::lib::{
     chunk::{Chunk, OpCode},
     value::Value,
 };
+
 use crate::vm::{InterpretResult, VmErr};
 use eswm_proc::rule;
 
@@ -196,6 +197,12 @@ fn binary(parser: &mut Parser) {
     parser.parse_precedence(precedence);
 
     match operator_id {
+	TokenType::BangEqual =>  parser.emit_bytes(OpCode::Equal as u8, OpCode::Not as u8),
+	TokenType::EqualEqual => parser.emit_byte(OpCode::Equal as u8),
+	TokenType::Greater => parser.emit_byte(OpCode::Greater as u8),
+	TokenType::GreaterEqual => parser.emit_bytes(OpCode::Less as u8, OpCode::Not as u8),
+	TokenType::Less => parser.emit_byte(OpCode::Less as u8),
+	TokenType::LessEqual => parser.emit_bytes(OpCode::Greater as u8, OpCode::Not as u8),
         TokenType::Plus => parser.emit_byte(OpCode::Add as u8),
         TokenType::Minus => parser.emit_byte(OpCode::Subtract as u8),
         TokenType::Star => parser.emit_byte(OpCode::Multiply as u8),
@@ -238,6 +245,7 @@ fn unary(parser: &mut Parser) {
 
     // Emit the operator instruction.
     match operator_type {
+        TokenType::Bang => parser.emit_byte(OpCode::Not as u8),
         TokenType::Minus => parser.emit_byte(OpCode::Negate as u8),
         _ => unreachable!(),
     }
@@ -296,56 +304,52 @@ impl Default for Precedence {
     }
 }
 
+#[rustfmt::skip]
 const RULES: [ParseRule; 40] = [
     // Single character tokens.
-    rule!((TokenType::LeftParen, Some(grouping), None, Precedence::None)),
-    rule!((TokenType::RightParan, None, None, Precedence::None)),
-    rule!((TokenType::LeftBrace, None, None, Precedence::None)),
-    rule!((TokenType::RightBrace, None, None, Precedence::None)),
-    rule!((TokenType::Comma, None, None, Precedence::None)),
-    rule!((TokenType::Dot, None, None, Precedence::None)),
-    rule!((
-        TokenType::Minus,
-        Some(unary),
-        Some(binary),
-        Precedence::Term
-    )),
-    rule!((TokenType::Plus, None, Some(binary), Precedence::Term)),
-    rule!((TokenType::Semicolon, None, None, Precedence::None)),
-    rule!((TokenType::Slash, None, Some(binary), Precedence::Factor)),
-    rule!((TokenType::Star, None, Some(binary), Precedence::Factor)),
-    // One or two character tokens
-    rule!((TokenType::Bang, None, None, Precedence::None)),
-    rule!((TokenType::BangEqual, None, None, Precedence::None)),
-    rule!((TokenType::Equal, None, None, Precedence::None)),
-    rule!((TokenType::EqualEqual, None, None, Precedence::None)),
-    rule!((TokenType::Greater, None, None, Precedence::None)),
-    rule!((TokenType::GreaterEqual, None, None, Precedence::None)),
-    rule!((TokenType::Less, None, None, Precedence::None)),
-    rule!((TokenType::LessEqual, None, None, Precedence::None)),
-    // Literals
-    rule!((TokenType::Identifier, None, None, Precedence::None)),
-    rule!((TokenType::String, None, None, Precedence::None)),
-    rule!((TokenType::Number, Some(number), None, Precedence::None)),
-    // Keywords
-    rule!((TokenType::And, None, None, Precedence::None)),
-    rule!((TokenType::Class, None, None, Precedence::None)),
-    rule!((TokenType::Else, None, None, Precedence::None)),
-    rule!((TokenType::False, Some(literal), None, Precedence::None)),
-    rule!((TokenType::For, None, None, Precedence::None)),
-    rule!((TokenType::Fun, None, None, Precedence::None)),
-    rule!((TokenType::If, None, None, Precedence::None)),
-    rule!((TokenType::Nil, Some(literal), None, Precedence::None)),
-    rule!((TokenType::Or, None, None, Precedence::None)),
-    rule!((TokenType::Print, None, None, Precedence::None)),
-    rule!((TokenType::Return, None, None, Precedence::None)),
-    rule!((TokenType::Super, None, None, Precedence::None)),
-    rule!((TokenType::This, None, None, Precedence::None)),
-    rule!((TokenType::True, Some(literal), None, Precedence::None)),
-    rule!((TokenType::Var, None, None, Precedence::None)),
-    rule!((TokenType::While, None, None, Precedence::None)),
-    rule!((TokenType::Error, None, None, Precedence::None)),
-    rule!((TokenType::Eof, None, None, Precedence::None)),
+    rule!((TokenType::LeftParen   , Some(grouping), None        , Precedence::None      )),
+    rule!((TokenType::RightParan  , None          , None        , Precedence::None      )),
+    rule!((TokenType::LeftBrace   , None          , None        , Precedence::None      )),
+    rule!((TokenType::RightBrace  , None          , None        , Precedence::None      )),
+    rule!((TokenType::Comma       , None          , None        , Precedence::None      )),
+    rule!((TokenType::Dot         , None          , None        , Precedence::None      )),
+    rule!((TokenType::Minus       , Some(unary)   , Some(binary), Precedence::Term      )),
+    rule!((TokenType::Plus        , None          , Some(binary), Precedence::Term      )),
+    rule!((TokenType::Semicolon   , None          , None        , Precedence::None      )),
+    rule!((TokenType::Slash       , None          , Some(binary), Precedence::Factor    )),
+    rule!((TokenType::Star        , None          , Some(binary), Precedence::Factor    )),
+    // One or two character tokens						        
+    rule!((TokenType::Bang        , Some(unary)   , None        , Precedence::None      )),
+    rule!((TokenType::BangEqual   , None          , Some(binary), Precedence::Equality  )),
+    rule!((TokenType::Equal       , None          , None        , Precedence::None      )),
+    rule!((TokenType::EqualEqual  , None          , Some(binary), Precedence::Equality  )),
+    rule!((TokenType::Greater     , None          , Some(binary), Precedence::Comparison)),
+    rule!((TokenType::GreaterEqual, None          , Some(binary), Precedence::Comparison)),
+    rule!((TokenType::Less        , None          , Some(binary), Precedence::Comparison)),
+    rule!((TokenType::LessEqual   , None          , Some(binary), Precedence::Comparison)),
+    // Literals						        		    
+    rule!((TokenType::Identifier  , None          , None        , Precedence::None      )),
+    rule!((TokenType::String      , None          , None        , Precedence::None      )),
+    rule!((TokenType::Number      , Some(number)  , None        , Precedence::None      )),
+    // Keywords						        		        
+    rule!((TokenType::And         , None          , None        , Precedence::None      )),
+    rule!((TokenType::Class       , None          , None        , Precedence::None      )),
+    rule!((TokenType::Else        , None          , None        , Precedence::None      )),
+    rule!((TokenType::False       , Some(literal) , None        , Precedence::None      )),
+    rule!((TokenType::For         , None          , None        , Precedence::None      )),
+    rule!((TokenType::Fun         , None          , None        , Precedence::None      )),
+    rule!((TokenType::If          , None          , None        , Precedence::None      )),
+    rule!((TokenType::Nil         , Some(literal) , None        , Precedence::None      )),
+    rule!((TokenType::Or          , None          , None        , Precedence::None      )),
+    rule!((TokenType::Print       , None          , None        , Precedence::None      )),
+    rule!((TokenType::Return      , None          , None        , Precedence::None      )),
+    rule!((TokenType::Super       , None          , None        , Precedence::None      )),
+    rule!((TokenType::This        , None          , None        , Precedence::None      )),
+    rule!((TokenType::True        , Some(literal) , None        , Precedence::None      )),
+    rule!((TokenType::Var         , None          , None        , Precedence::None      )),
+    rule!((TokenType::While       , None          , None        , Precedence::None      )),
+    rule!((TokenType::Error       , None          , None        , Precedence::None      )),
+    rule!((TokenType::Eof         , None          , None        , Precedence::None      )),
 ];
 
 pub fn compile(source: &str) -> InterpretResult<Chunk> {

@@ -197,6 +197,7 @@ impl Scanner {
             }
         }
     }
+
     fn check_keyword(
         &mut self,
         start: usize,
@@ -219,6 +220,7 @@ impl Scanner {
             TokenType::Identifier
         }
     }
+
     fn identifier_id(&mut self) -> TokenType {
         unsafe {
             match *self.start {
@@ -341,23 +343,23 @@ impl Scanner {
             }
             '=' => {
                 if self.matches('=') {
-                    self.make_token(TokenType::BangEqual)
+                    self.make_token(TokenType::EqualEqual)
                 } else {
-                    self.make_token(TokenType::Bang)
+                    self.make_token(TokenType::Equal)
                 }
             }
             '<' => {
                 if self.matches('=') {
-                    self.make_token(TokenType::BangEqual)
+                    self.make_token(TokenType::LessEqual)
                 } else {
-                    self.make_token(TokenType::Bang)
+                    self.make_token(TokenType::Less)
                 }
             }
             '>' => {
                 if self.matches('=') {
-                    self.make_token(TokenType::BangEqual)
+                    self.make_token(TokenType::GreaterEqual)
                 } else {
-                    self.make_token(TokenType::Bang)
+                    self.make_token(TokenType::Greater)
                 }
             }
             '"' => self.string(),

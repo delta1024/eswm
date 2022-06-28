@@ -23,7 +23,7 @@ pub mod value {
         Number,
     }
 
-    #[derive(Debug, Clone, Copy)]
+    #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
     /// eswm's internal value representation.
     pub enum Value {
         Bool(bool),
@@ -123,14 +123,14 @@ pub mod value {
             }
         }
     }
-    
+
     /// Prints [`Value`] to stdout.
     pub fn print_value(value: Value) {
         match value {
-	    Value::None => print!("nil"),
-	    Value::Bool(_) => print!("{}", value.as_bool()),
-	    Value::Number(_) => print!("{}", value.as_number()),
-	}
+            Value::None => print!("nil"),
+            Value::Bool(_) => print!("{}", value.as_bool()),
+            Value::Number(_) => print!("{}", value.as_number()),
+        }
     }
 }
 
@@ -142,6 +142,7 @@ pub mod chunk {
     pub enum OpCode {
         Return,
         Constant,
+
         Negate,
         Add,
         Subtract,
@@ -150,6 +151,10 @@ pub mod chunk {
         Nil,
         True,
         False,
+        Not,
+	Equal,
+	Greater,
+	Less,
     }
 
     impl From<u8> for OpCode {
@@ -165,6 +170,10 @@ pub mod chunk {
                 7 => OpCode::Nil,
                 8 => OpCode::True,
                 9 => OpCode::False,
+                10 => OpCode::Not,
+		11 => OpCode::Equal,
+		12 => OpCode::Greater,
+		13 => OpCode::Less,
                 _ => unreachable!(),
             }
         }
@@ -183,6 +192,10 @@ pub mod chunk {
                 OpCode::Nil => write!(f, "OP_NIL"),
                 OpCode::True => write!(f, "OP_TRUE"),
                 OpCode::False => write!(f, "OP_FALSE"),
+                OpCode::Not => write!(f, "OP_NOT"),
+		OpCode::Equal => write!(f, "OP_EQUAL"),
+		OpCode::Greater => write!(f, "OP_GREATER"),
+		OpCode::Less => write!(f, "OP_LESS"),
             }
         }
     }
@@ -255,7 +268,8 @@ pub mod debug {
             | OpCode::Divide
             | OpCode::Nil
             | OpCode::True
-            | OpCode::False => simple_instruction(instruction, offset),
+            | OpCode::False
+            | OpCode::Not | OpCode::Equal | OpCode::Greater | OpCode::Less => simple_instruction(instruction, offset),
             OpCode::Constant => constant_instruction(instruction, chunk, offset),
         }
     }
