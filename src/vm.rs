@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+use crate::compiler::compile;
 use crate::lib::chunk::{Chunk, OpCode};
 use crate::lib::debug::disassemble_instruction;
 use crate::lib::value::{print_value, Value};
@@ -36,8 +37,8 @@ pub enum VmErr {
 
 pub type InterpretResult<T> = Result<T, VmErr>;
 
-pub struct Vm<'a> {
-    pub chunk: Option<&'a Chunk>,
+pub struct Vm {
+    pub chunk: Option<Chunk>,
     pub ip: *const u8,
     pub stack: Vec<Value>,
     pub stack_top: *mut Value,
@@ -49,12 +50,12 @@ fn generate_stack() -> Vec<Value> {
     vector
 }
 
-impl<'a> Vm<'a> {
+impl Vm {
     pub fn new() -> Self {
         let stack = generate_stack();
         let mut vm = Vm {
             chunk: None,
-            ip: &0,
+            ip: &mut 0,
             stack,
             stack_top: &mut 0.0,
         };
@@ -66,9 +67,11 @@ impl<'a> Vm<'a> {
         self.stack_top = &mut self.stack[0];
     }
 
-    pub fn interpret(&mut self, chunk: &'a Chunk) -> InterpretResult<()> {
+    pub fn interpret(&mut self, source: &str) -> InterpretResult<()> {
+        let chunk = compile(source)?;
+
+        self.ip = &chunk.code[0];
         self.chunk = Some(chunk);
-        self.ip = &self.chunk.unwrap().code[0];
         self.run()
     }
 
@@ -96,7 +99,7 @@ impl<'a> Vm<'a> {
 
     fn read_constant(&mut self) -> Value {
         let const_location = self.read_byte() as usize;
-        self.chunk.unwrap().constants[const_location]
+        self.chunk.as_ref().unwrap().constants[const_location]
     }
 
     fn binary_op(&mut self, op: BinaryOp) {
@@ -132,9 +135,12 @@ impl<'a> Vm<'a> {
                     }
                 }
                 println!();
-                disassemble_instruction(&self.chunk.unwrap(), unsafe {
-                    self.ip.offset_from(&self.chunk.unwrap().code[0]) as usize
-                });
+                unsafe {
+                    disassemble_instruction(
+                        &self.chunk.as_ref().unwrap(),
+                        self.ip.offset_from(&self.chunk.as_ref().unwrap().code[0]) as usize,
+                    );
+                }
             }
 
             let instruction = OpCode::from(self.read_byte());

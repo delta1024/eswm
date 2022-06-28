@@ -97,7 +97,7 @@ pub mod chunk {
 }
 
 pub mod debug {
-    use crate::chunk::{Chunk, OpCode};
+    use super::chunk::{Chunk, OpCode};
     /// Outputs `code` to stdout.
     /// Returns offset + 1.
     fn simple_instruction(code: OpCode, offset: usize) -> usize {

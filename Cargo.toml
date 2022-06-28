@@ -5,9 +5,19 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dependencies]
-
 [features]
 debug_trace_execution = []
-debug = ["debug_trace_execution"]
+debug_print_code = []
+debug = ["debug_trace_execution", "debug_print_code"]
 default = ["debug"]
+
+[lib]
+name = "eswm_proc"
+path = "src/macro.rs"
+proc-macro = true
+
+[[bin]]
+name = "eswm"
+path = "src/main.rs"
+
+[dependencies]
