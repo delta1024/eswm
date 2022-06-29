@@ -22,6 +22,7 @@ mod compiler;
 mod lib;
 #[allow(dead_code)]
 mod vm;
+mod value;
 
 fn repl() -> io::Result<()> {
     let mut vm: vm::Vm = vm::Vm::new();

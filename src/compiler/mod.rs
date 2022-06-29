@@ -19,9 +19,9 @@ extern crate eswm_proc;
 use crate::lib::debug::disassemble_chunk;
 use crate::lib::{
     chunk::{Chunk, OpCode},
-    value::Value,
+    
 };
-
+use crate::value::Value;
 use crate::vm::{InterpretResult, VmErr};
 use eswm_proc::rule;
 

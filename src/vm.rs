@@ -17,7 +17,7 @@
 use crate::compiler::compile;
 use crate::lib::chunk::{Chunk, OpCode};
 use crate::lib::debug::disassemble_instruction;
-use crate::lib::value::{print_value, Value, ValueType};
+use crate::value::{print_value, Value, ValueType};
 use std::result::Result;
 
 const STACK_MAX: usize = 256;
