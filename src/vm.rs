@@ -17,8 +17,10 @@
 use crate::compiler::compile;
 use crate::lib::chunk::{Chunk, OpCode};
 use crate::lib::debug::disassemble_instruction;
-use crate::value::{print_value, Value, ValueType};
+use crate::value::{print_value, Value, ValueType, objects::{ObjList, ObjString, Object, ObjPtr, ObjId}};
 use std::result::Result;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 const STACK_MAX: usize = 256;
 
@@ -44,6 +46,19 @@ pub struct Vm {
     pub ip: *const u8,
     pub stack: Vec<Value>,
     pub stack_top: *mut Value,
+    pub objects: Option<Box<ObjList>>,
+}
+
+pub fn allocate_obj(vm: &mut Vm, object: ObjPtr, id: ObjId) -> Object {
+    let list = vm.objects.take();
+    let new_list = Box::new(ObjList {
+	value: object,
+	next: list,
+    });
+    let object: *const ObjPtr = &new_list.value;
+    let _ = vm.objects.insert(new_list);
+    Object::new(id, object)
+	
 }
 
 fn generate_stack() -> Vec<Value> {
@@ -56,6 +71,16 @@ fn is_falsy(value: Value) -> bool {
     value.is_type(ValueType::Nil) || (value.is_type(ValueType::Bool) && !value.as_bool())
 }
 
+/// concatenates the two values on the stack into a new value
+fn concatenate(vm: &mut Vm) {
+    let b = String::from(vm.pop().as_rstring());
+    let a = String::from(vm.pop().as_rstring());
+    let c = format!("{}{}", a, b);
+    let c = allocate_obj(vm, Rc::new(RefCell::new(ObjString(c))), ObjId::String);
+    vm.push(c);
+}
+
+
 impl Vm {
     pub fn new() -> Self {
         let stack = generate_stack();
@@ -64,6 +89,11 @@ impl Vm {
             ip: &mut 0,
             stack,
             stack_top: &mut Value::None,
+	    objects: Some(Box::new(ObjList {
+		value: Rc::new(RefCell::new(ObjString(String::new()))),
+		next: None,
+	    }
+	    )) 
         };
         vm.reset_stack();
         vm
@@ -84,7 +114,7 @@ impl Vm {
     }
 
     pub fn interpret(&mut self, source: &str) -> InterpretResult<()> {
-        let chunk = compile(source)?;
+        let chunk = compile(self, source)?;
 
         self.ip = &chunk.code[0];
         self.chunk = Some(chunk);
@@ -197,7 +227,17 @@ impl Vm {
 		    self.push(a == b);
 			
 		}
-                OpCode::Add => self.binary_op(BinaryOp::Add),
+                OpCode::Add => {
+		    if self.peek(0).is_string() && self.peek(1).is_string() {
+			concatenate(self);
+		    } else if self.peek(0).is_type(ValueType::Number) && self.peek(1).is_type(ValueType::Number) {
+			self.binary_op(BinaryOp::Add)			
+		    } else {
+			self.runtime_error("Operands must be two numbers or two strings.");
+			return Err(VmErr::RuntimeError);
+		    }		
+
+		},
 		OpCode::Greater => self.binary_op(BinaryOp::Greater),
 		OpCode::Less => self.binary_op(BinaryOp::Less),
                 OpCode::Subtract => self.binary_op(BinaryOp::Sub),

@@ -214,7 +214,7 @@ impl Scanner {
             }
         }
 
-        if scan_len == (start + length) && &scan_str == rest {
+        if scan_len == (start + length) && scan_str == rest {
             id
         } else {
             TokenType::Identifier

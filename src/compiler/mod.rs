@@ -15,14 +15,17 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 extern crate eswm_proc;
+use std::rc::Rc;
+use std::cell::RefCell;
 #[cfg(feature = "debug_print_code")]
 use crate::lib::debug::disassemble_chunk;
 use crate::lib::{
     chunk::{Chunk, OpCode},
     
 };
-use crate::value::Value;
-use crate::vm::{InterpretResult, VmErr};
+use crate::value::{Value, objects::{ObjString, ObjId}};
+use crate::vm::{InterpretResult, VmErr, Vm, allocate_obj};
+
 use eswm_proc::rule;
 
 mod scanner;
@@ -43,10 +46,11 @@ struct Parser<'a, 'b> {
     rule: Option<&'a ParseRule>,
     had_error: bool,
     panic_mode: bool,
+    vm: &'b mut Vm,
 }
 
 impl<'a, 'b> Parser<'a, 'b> {
-    fn new(scanner: &'a mut Scanner, chunk: &'b mut Chunk) -> Self {
+    fn new(vm: &'b mut Vm, scanner: &'a mut Scanner, chunk: &'b mut Chunk) -> Self {
         Parser {
             current: None,
             previous: None,
@@ -55,6 +59,7 @@ impl<'a, 'b> Parser<'a, 'b> {
             rule: None,
             had_error: false,
             panic_mode: false,
+	    vm,
         }
     }
 
@@ -237,6 +242,17 @@ fn number(parser: &mut Parser) {
     parser.emit_constant(value);
 }
 
+fn string(parser: &mut Parser) {
+    let string = String::from(&parser.previous.as_ref().unwrap().string());
+    let mut string = string.chars();
+    string.next();
+    string.next_back();
+    let string = String::from(string.as_str());
+
+    let string = allocate_obj(parser.vm, Rc::new(RefCell::new(ObjString(string))), ObjId::String);
+    parser.emit_constant(string);
+}
+
 fn unary(parser: &mut Parser) {
     let operator_type = parser.previous.as_ref().unwrap().id;
 
@@ -329,7 +345,7 @@ const RULES: [ParseRule; 40] = [
     rule!((TokenType::LessEqual   , None          , Some(binary), Precedence::Comparison)),
     // Literals						        		    
     rule!((TokenType::Identifier  , None          , None        , Precedence::None      )),
-    rule!((TokenType::String      , None          , None        , Precedence::None      )),
+    rule!((TokenType::String      , Some(string)  , None        , Precedence::None      )),
     rule!((TokenType::Number      , Some(number)  , None        , Precedence::None      )),
     // Keywords						        		        
     rule!((TokenType::And         , None          , None        , Precedence::None      )),
@@ -352,12 +368,12 @@ const RULES: [ParseRule; 40] = [
     rule!((TokenType::Eof         , None          , None        , Precedence::None      )),
 ];
 
-pub fn compile(source: &str) -> InterpretResult<Chunk> {
+pub fn compile<'a, 'b>(vm: &'a mut Vm, source: &'b str) -> InterpretResult<Chunk> {
     let mut chunk = Chunk::new();
     let mut source: Vec<char> = source.chars().collect();
     source.push('\0');
     let mut scanner = Scanner::new(&source);
-    let mut parser = Parser::new(&mut scanner, &mut chunk);
+    let mut parser = Parser::new(vm, &mut scanner, &mut chunk);
     parser.advance();
     expression(&mut parser);
     parser.consume(TokenType::Eof, "Expected end of expression.");
