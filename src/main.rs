@@ -20,9 +20,9 @@ use std::io::Write;
 mod compiler;
 #[allow(dead_code)]
 mod lib;
+mod value;
 #[allow(dead_code)]
 mod vm;
-mod value;
 
 fn repl() -> io::Result<()> {
     let mut vm: vm::Vm = vm::Vm::new();

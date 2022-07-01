@@ -17,14 +17,11 @@
 extern crate eswm_proc;
 // use std::rc::Rc;
 // use std::cell::RefCell;
+use crate::lib::chunk::{Chunk, OpCode};
 #[cfg(feature = "debug_print_code")]
 use crate::lib::debug::disassemble_chunk;
-use crate::lib::{
-    chunk::{Chunk, OpCode},
-    
-};
 use crate::value::Value;
-use crate::vm::{InterpretResult, VmErr, Vm, allocate_string};
+use crate::vm::{allocate_string, InterpretResult, Vm, VmErr};
 
 use eswm_proc::rule;
 
@@ -59,7 +56,7 @@ impl<'a, 'b> Parser<'a, 'b> {
             rule: None,
             had_error: false,
             panic_mode: false,
-	    vm,
+            vm,
         }
     }
 
@@ -202,12 +199,12 @@ fn binary(parser: &mut Parser) {
     parser.parse_precedence(precedence);
 
     match operator_id {
-	TokenType::BangEqual =>  parser.emit_bytes(OpCode::Equal as u8, OpCode::Not as u8),
-	TokenType::EqualEqual => parser.emit_byte(OpCode::Equal as u8),
-	TokenType::Greater => parser.emit_byte(OpCode::Greater as u8),
-	TokenType::GreaterEqual => parser.emit_bytes(OpCode::Less as u8, OpCode::Not as u8),
-	TokenType::Less => parser.emit_byte(OpCode::Less as u8),
-	TokenType::LessEqual => parser.emit_bytes(OpCode::Greater as u8, OpCode::Not as u8),
+        TokenType::BangEqual => parser.emit_bytes(OpCode::Equal as u8, OpCode::Not as u8),
+        TokenType::EqualEqual => parser.emit_byte(OpCode::Equal as u8),
+        TokenType::Greater => parser.emit_byte(OpCode::Greater as u8),
+        TokenType::GreaterEqual => parser.emit_bytes(OpCode::Less as u8, OpCode::Not as u8),
+        TokenType::Less => parser.emit_byte(OpCode::Less as u8),
+        TokenType::LessEqual => parser.emit_bytes(OpCode::Greater as u8, OpCode::Not as u8),
         TokenType::Plus => parser.emit_byte(OpCode::Add as u8),
         TokenType::Minus => parser.emit_byte(OpCode::Subtract as u8),
         TokenType::Star => parser.emit_byte(OpCode::Multiply as u8),

@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-// pub mod objects; 
+// pub mod objects;
 // use objects::*;
 // use std::cell::Ref;
 use std::cmp::PartialEq;
@@ -40,25 +40,25 @@ pub enum Value {
 
 impl Value {
     pub fn is_type(&self, val_type: ValueType) -> bool {
-	match *self {
-	    Self::Bool(_) => ValueType::Bool == val_type,
-	    Self::Number(_) => ValueType::Number == val_type,
-	    // Self::Obj(_) => ValueType::Obj == val_type,
-	    Self::String(_) => ValueType::String == val_type,
-	    Self::None => ValueType::Nil == val_type,
-	}
+        match *self {
+            Self::Bool(_) => ValueType::Bool == val_type,
+            Self::Number(_) => ValueType::Number == val_type,
+            // Self::Obj(_) => ValueType::Obj == val_type,
+            Self::String(_) => ValueType::String == val_type,
+            Self::None => ValueType::Nil == val_type,
+        }
     }
 
     pub fn val_type(&self) -> ValueType {
-	match self {
-	    Self::Bool(_) => ValueType::Bool,
-	    Self::Number(_) => ValueType::Number,
-	    // Self::Obj(_) => ValueType::Obj,
-	    Self::String(_) => ValueType::String,
-	    Self::None => ValueType::Nil,
-	}
+        match self {
+            Self::Bool(_) => ValueType::Bool,
+            Self::Number(_) => ValueType::Number,
+            // Self::Obj(_) => ValueType::Obj,
+            Self::String(_) => ValueType::String,
+            Self::None => ValueType::Nil,
+        }
     }
-    
+
     // pub fn is_obj_type(&self, obj_type: ObjId) -> bool {
     // 	if let Self::Obj(obj) = self {
     // 	    obj.id == obj_type
@@ -66,23 +66,23 @@ impl Value {
     // 	    false
     // 	}
     // }
-    
+
     pub fn nil() -> Value {
-	Value::None
+        Value::None
     }
 
     pub fn as_bool(&self) -> bool {
-	match *self {
-	    Self::Bool(val) => val,
-	    _ => unreachable!(),
-	}
+        match *self {
+            Self::Bool(val) => val,
+            _ => unreachable!(),
+        }
     }
 
     pub fn as_number(&self) -> f64 {
-	match *self {
-	    Self::Number(val) => val,
-	    _ => unreachable!(),
-	}
+        match *self {
+            Self::Number(val) => val,
+            _ => unreachable!(),
+        }
     }
 
     // pub fn as_obj(&self) -> &Object {
@@ -108,25 +108,23 @@ impl Value {
     // 	}
     // }
 
-
-
     pub fn as_rstring(&self) -> String {
-	match self {
-	    Self::String(string) => unsafe { String::from(string.as_ref().unwrap())},
-	    _ => unreachable!(),
-	}
+        match self {
+            Self::String(string) => unsafe { String::from(string.as_ref().unwrap()) },
+            _ => unreachable!(),
+        }
     }
 }
 
 impl From<f64> for Value {
     fn from(value: f64) -> Value {
-	Value::Number(value)
+        Value::Number(value)
     }
 }
 
 impl From<bool> for Value {
     fn from(value: bool) -> Value {
-	Value::Bool(value)
+        Value::Bool(value)
     }
 }
 
@@ -138,22 +136,21 @@ impl From<bool> for Value {
 
 impl From<*const String> for Value {
     fn from(value: *const String) -> Value {
-	Value::String(value)
+        Value::String(value)
     }
 }
 
 impl PartialEq for Value {
     fn eq(&self, other: &Value) -> bool {
-	self.val_type() == other.val_type() && 
-	    match self.val_type() {
-		// ValueType::Obj => false,
-		ValueType::Nil if ValueType::Nil == other.val_type() => true,
-		ValueType::Bool if self.as_bool() == other.as_bool() => true,
-		ValueType::Number if self.as_number() == other.as_number() => true,
-		ValueType::String if self.as_rstring() == other.as_rstring() => true,
-		_ => false
-		    
-	    }
+        self.val_type() == other.val_type()
+            && match self.val_type() {
+                // ValueType::Obj => false,
+                ValueType::Nil if ValueType::Nil == other.val_type() => true,
+                ValueType::Bool if self.as_bool() == other.as_bool() => true,
+                ValueType::Number if self.as_number() == other.as_number() => true,
+                ValueType::String if self.as_rstring() == other.as_rstring() => true,
+                _ => false,
+            }
     }
 }
 
@@ -161,62 +158,62 @@ impl Add for Value {
     type Output = Self;
 
     fn add(self, other: Self) -> Self {
-	match self {
-	    Self::Number(val) => match other {
-		Self::Number(val2) => (val + val2).into(),
-		_ => unreachable!(),
-	    },
-	    _ => unreachable!(),
-	}
+        match self {
+            Self::Number(val) => match other {
+                Self::Number(val2) => (val + val2).into(),
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        }
     }
 }
 
 impl Sub for Value {
     type Output = Self;
     fn sub(self, other: Self) -> Self {
-	match self {
-	    Self::Number(val) => match other {
-		Self::Number(val2) => (val - val2).into(),
-		_ => unreachable!(),
-	    },
-	    _ => unreachable!(),
-	}
+        match self {
+            Self::Number(val) => match other {
+                Self::Number(val2) => (val - val2).into(),
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        }
     }
 }
 
 impl Div for Value {
     type Output = Self;
     fn div(self, other: Self) -> Self {
-	match self {
-	    Self::Number(val) => match other {
-		Self::Number(val2) => (val / val2).into(),
-		_ => unreachable!(),
-	    },
-	    _ => unreachable!(),
-	}
+        match self {
+            Self::Number(val) => match other {
+                Self::Number(val2) => (val / val2).into(),
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        }
     }
 }
 
 impl Mul for Value {
     type Output = Self;
     fn mul(self, other: Self) -> Self {
-	match self {
-	    Self::Number(val) => match other {
-		Self::Number(val2) => (val * val2).into(),
-		_ => unreachable!(),
-	    },
-	    _ => unreachable!(),
-	}
+        match self {
+            Self::Number(val) => match other {
+                Self::Number(val2) => (val * val2).into(),
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        }
     }
 }
 
 /// Prints [`Value`] to stdout.
 pub fn print_value(value: Value) {
     match value {
-	Value::None => print!("nil"),
-	Value::Bool(_) => print!("{}", value.as_bool()),
-	Value::Number(_) => print!("{}", value.as_number()),
-	Value::String(_) => print!("{}", value.as_rstring()),
-	// Value::Obj(_) => print_object(value.as_obj()),
+        Value::None => print!("nil"),
+        Value::Bool(_) => print!("{}", value.as_bool()),
+        Value::Number(_) => print!("{}", value.as_number()),
+        Value::String(_) => print!("{}", value.as_rstring()),
+        // Value::Obj(_) => print_object(value.as_obj()),
     }
 }

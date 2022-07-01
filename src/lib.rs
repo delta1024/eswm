@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-
 pub mod chunk {
     use crate::value::Value;
     use std::fmt::{self, Display};
@@ -33,9 +32,9 @@ pub mod chunk {
         True,
         False,
         Not,
-	Equal,
-	Greater,
-	Less,
+        Equal,
+        Greater,
+        Less,
     }
 
     impl From<u8> for OpCode {
@@ -52,9 +51,9 @@ pub mod chunk {
                 8 => OpCode::True,
                 9 => OpCode::False,
                 10 => OpCode::Not,
-		11 => OpCode::Equal,
-		12 => OpCode::Greater,
-		13 => OpCode::Less,
+                11 => OpCode::Equal,
+                12 => OpCode::Greater,
+                13 => OpCode::Less,
                 _ => unreachable!(),
             }
         }
@@ -74,9 +73,9 @@ pub mod chunk {
                 OpCode::True => write!(f, "OP_TRUE"),
                 OpCode::False => write!(f, "OP_FALSE"),
                 OpCode::Not => write!(f, "OP_NOT"),
-		OpCode::Equal => write!(f, "OP_EQUAL"),
-		OpCode::Greater => write!(f, "OP_GREATER"),
-		OpCode::Less => write!(f, "OP_LESS"),
+                OpCode::Equal => write!(f, "OP_EQUAL"),
+                OpCode::Greater => write!(f, "OP_GREATER"),
+                OpCode::Less => write!(f, "OP_LESS"),
             }
         }
     }
@@ -150,7 +149,10 @@ pub mod debug {
             | OpCode::Nil
             | OpCode::True
             | OpCode::False
-            | OpCode::Not | OpCode::Equal | OpCode::Greater | OpCode::Less => simple_instruction(instruction, offset),
+            | OpCode::Not
+            | OpCode::Equal
+            | OpCode::Greater
+            | OpCode::Less => simple_instruction(instruction, offset),
             OpCode::Constant => constant_instruction(instruction, chunk, offset),
         }
     }

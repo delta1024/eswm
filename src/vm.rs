@@ -60,14 +60,13 @@ pub struct Vm {
 //     let object: *const ObjPtr = &new_list.value;
 //     let _ = vm.objects.insert(new_list);
 //     Object::new(id, object)
-	
+
 // }
 
 pub fn allocate_string(vm: &mut Vm, to_allocate: String) -> *const String {
     let key = to_allocate.clone();
     vm.strings.insert(to_allocate);
     vm.strings.get(&key).unwrap()
-
 }
 
 fn generate_stack() -> Vec<Value> {
@@ -89,7 +88,6 @@ fn concatenate(vm: &mut Vm) {
     vm.push(c);
 }
 
-
 impl Vm {
     pub fn new() -> Self {
         let stack = generate_stack();
@@ -98,13 +96,12 @@ impl Vm {
             ip: &mut 0,
             stack,
             stack_top: &mut Value::None,
-	    strings: HashSet::new(),
-	    // objects: Some(Box::new(ObjList {
-	    // 	value: Rc::new(RefCell::new(ObjString(String::new()))),
-	    // 	next: None,
-	    // }
-	    // ))
-		
+            strings: HashSet::new(),
+            // objects: Some(Box::new(ObjList {
+            // 	value: Rc::new(RefCell::new(ObjString(String::new()))),
+            // 	next: None,
+            // }
+            // ))
         };
         vm.reset_stack();
         vm
@@ -150,7 +147,6 @@ impl Vm {
         unsafe { *self.stack_top.sub(1).sub(distance) }
     }
 
-    
     fn read_byte(&mut self) -> u8 {
         let instruction: u8 = unsafe { *self.ip };
 
@@ -175,8 +171,8 @@ impl Vm {
             BinaryOp::Sub => a - b,
             BinaryOp::Div => a / b,
             BinaryOp::Mul => a * b,
-	    BinaryOp::Greater => (a > b).into(),
-	    BinaryOp::Less => (a < b).into(),
+            BinaryOp::Greater => (a > b).into(),
+            BinaryOp::Less => (a < b).into(),
         });
     }
 
@@ -232,25 +228,27 @@ impl Vm {
                 OpCode::Nil => self.push(Value::None),
                 OpCode::True => self.push(true),
                 OpCode::False => self.push(false),
-		OpCode::Equal => {
-		    let b = self.pop();
-		    let a = self.pop();
-		    self.push(a == b);
-			
-		}
+                OpCode::Equal => {
+                    let b = self.pop();
+                    let a = self.pop();
+                    self.push(a == b);
+                }
                 OpCode::Add => {
-		    if self.peek(0).is_type(ValueType::String) && self.peek(1).is_type(ValueType::String) {
-			concatenate(self);
-		    } else if self.peek(0).is_type(ValueType::Number) && self.peek(1).is_type(ValueType::Number) {
-			self.binary_op(BinaryOp::Add)			
-		    } else {
-			self.runtime_error("Operands must be two numbers or two strings.");
-			return Err(VmErr::RuntimeError);
-		    }		
-
-		},
-		OpCode::Greater => self.binary_op(BinaryOp::Greater),
-		OpCode::Less => self.binary_op(BinaryOp::Less),
+                    if self.peek(0).is_type(ValueType::String)
+                        && self.peek(1).is_type(ValueType::String)
+                    {
+                        concatenate(self);
+                    } else if self.peek(0).is_type(ValueType::Number)
+                        && self.peek(1).is_type(ValueType::Number)
+                    {
+                        self.binary_op(BinaryOp::Add)
+                    } else {
+                        self.runtime_error("Operands must be two numbers or two strings.");
+                        return Err(VmErr::RuntimeError);
+                    }
+                }
+                OpCode::Greater => self.binary_op(BinaryOp::Greater),
+                OpCode::Less => self.binary_op(BinaryOp::Less),
                 OpCode::Subtract => self.binary_op(BinaryOp::Sub),
                 OpCode::Divide => self.binary_op(BinaryOp::Div),
                 OpCode::Multiply => self.binary_op(BinaryOp::Mul),
@@ -258,8 +256,6 @@ impl Vm {
                     let val = is_falsy(self.pop());
                     self.push(val);
                 }
-
-
             }
         }
     }
