@@ -164,14 +164,10 @@ impl<'a, 'b> Parser<'a, 'b> {
                     break;
                 }
             }
-        } else {
-            if can_assign && self.matches(TokenType::Equal) {
-	    self.error("Invalid assignment target.");		
+	    if can_assign && self.matches(TokenType::Equal) {
+		self.error("Invalid assignment target.");		
 	    }
-
-        }
-
-
+	}
     }
 
     fn identifier_constant(&mut self, name: &Token) -> u8 {
