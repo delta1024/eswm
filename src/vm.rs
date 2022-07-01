@@ -17,10 +17,11 @@
 use crate::compiler::compile;
 use crate::lib::chunk::{Chunk, OpCode};
 use crate::lib::debug::disassemble_instruction;
-use crate::value::{print_value, Value, ValueType, objects::{ObjList, ObjString, Object, ObjPtr, ObjId}};
+use crate::value::{print_value, Value, ValueType}; //objects::{ObjList, ObjString, Object, ObjPtr, ObjId}};
 use std::result::Result;
-use std::rc::Rc;
-use std::cell::RefCell;
+// use std::rc::Rc;
+// use std::cell::RefCell;
+use std::collections::HashSet;
 
 const STACK_MAX: usize = 256;
 
@@ -46,19 +47,27 @@ pub struct Vm {
     pub ip: *const u8,
     pub stack: Vec<Value>,
     pub stack_top: *mut Value,
-    pub objects: Option<Box<ObjList>>,
+    pub strings: HashSet<String>,
+    // pub objects: Option<Box<ObjList>>,
 }
 
-pub fn allocate_obj(vm: &mut Vm, object: ObjPtr, id: ObjId) -> Object {
-    let list = vm.objects.take();
-    let new_list = Box::new(ObjList {
-	value: object,
-	next: list,
-    });
-    let object: *const ObjPtr = &new_list.value;
-    let _ = vm.objects.insert(new_list);
-    Object::new(id, object)
+// pub fn allocate_obj(vm: &mut Vm, object: ObjPtr, id: ObjId) -> Object {
+//     let list = vm.objects.take();
+//     let new_list = Box::new(ObjList {
+// 	value: object,
+// 	next: list,
+//     });
+//     let object: *const ObjPtr = &new_list.value;
+//     let _ = vm.objects.insert(new_list);
+//     Object::new(id, object)
 	
+// }
+
+pub fn allocate_string(vm: &mut Vm, to_allocate: String) -> *const String {
+    let key = to_allocate.clone();
+    vm.strings.insert(to_allocate);
+    vm.strings.get(&key).unwrap()
+
 }
 
 fn generate_stack() -> Vec<Value> {
@@ -76,7 +85,7 @@ fn concatenate(vm: &mut Vm) {
     let b = String::from(vm.pop().as_rstring());
     let a = String::from(vm.pop().as_rstring());
     let c = format!("{}{}", a, b);
-    let c = allocate_obj(vm, Rc::new(RefCell::new(ObjString(c))), ObjId::String);
+    let c = allocate_string(vm, c);
     vm.push(c);
 }
 
@@ -89,11 +98,13 @@ impl Vm {
             ip: &mut 0,
             stack,
             stack_top: &mut Value::None,
-	    objects: Some(Box::new(ObjList {
-		value: Rc::new(RefCell::new(ObjString(String::new()))),
-		next: None,
-	    }
-	    )) 
+	    strings: HashSet::new(),
+	    // objects: Some(Box::new(ObjList {
+	    // 	value: Rc::new(RefCell::new(ObjString(String::new()))),
+	    // 	next: None,
+	    // }
+	    // ))
+		
         };
         vm.reset_stack();
         vm
@@ -228,7 +239,7 @@ impl Vm {
 			
 		}
                 OpCode::Add => {
-		    if self.peek(0).is_string() && self.peek(1).is_string() {
+		    if self.peek(0).is_type(ValueType::String) && self.peek(1).is_type(ValueType::String) {
 			concatenate(self);
 		    } else if self.peek(0).is_type(ValueType::Number) && self.peek(1).is_type(ValueType::Number) {
 			self.binary_op(BinaryOp::Add)			

@@ -15,16 +15,16 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 extern crate eswm_proc;
-use std::rc::Rc;
-use std::cell::RefCell;
+// use std::rc::Rc;
+// use std::cell::RefCell;
 #[cfg(feature = "debug_print_code")]
 use crate::lib::debug::disassemble_chunk;
 use crate::lib::{
     chunk::{Chunk, OpCode},
     
 };
-use crate::value::{Value, objects::{ObjString, ObjId}};
-use crate::vm::{InterpretResult, VmErr, Vm, allocate_obj};
+use crate::value::Value;
+use crate::vm::{InterpretResult, VmErr, Vm, allocate_string};
 
 use eswm_proc::rule;
 
@@ -249,7 +249,7 @@ fn string(parser: &mut Parser) {
     string.next_back();
     let string = String::from(string.as_str());
 
-    let string = allocate_obj(parser.vm, Rc::new(RefCell::new(ObjString(string))), ObjId::String);
+    let string = allocate_string(parser.vm, string);
     parser.emit_constant(string);
 }
 

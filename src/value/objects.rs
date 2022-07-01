@@ -1,3 +1,19 @@
+// eswm -- Emacs Standalown WindowManager
+// Copyright (C) 2022 Jacob Stannix
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 /*! eswm first class objects.
 
 this Module holds eswm's heap allocated objects.
@@ -9,7 +25,7 @@ pub type ObjPtr = Rc<RefCell<dyn ObjVal>>;
 
 #[derive(Debug ,Clone, Copy, PartialOrd, PartialEq)]
 pub enum ObjId {
-    String
+
 }
 
 #[derive(Debug, Clone, Copy, PartialOrd, PartialEq)]
@@ -37,34 +53,16 @@ pub struct ObjList {
 
 /// Defines Object behavior.
 pub trait ObjVal {
-    fn as_string(&self) -> Option<&ObjString> {
-	None
-    }
-
-    fn as_rstring(&self) -> Option<&str> {
-	None
-    }
+    fn placeholder_fn();
 }
 
 pub fn print_object(object: &Object) {
-    unsafe {
-	match object.id {
-	    ObjId::String => print!("{}", (*object.object).borrow().as_rstring().unwrap()),
-	}
-    }	
+    // unsafe {
+    // 	match object.id {
+
+    // 	}
+    // }	
 }
 
-#[derive(Debug)]
-/// The Vm's internal representation of a string.
-pub struct ObjString(pub String);
 
-impl ObjVal for ObjString {
-    fn as_string(&self) -> Option<&ObjString> {
-	Some(&self)
-    }
-
-    fn as_rstring(&self) -> Option<&str> {
-	Some(self.0.as_str())
-    }
-}
 
