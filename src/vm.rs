@@ -21,7 +21,7 @@ use crate::value::{print_value, Value, ValueType}; //objects::{ObjList, ObjStrin
 use std::result::Result;
 // use std::rc::Rc;
 // use std::cell::RefCell;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 const STACK_MAX: usize = 256;
 
@@ -47,6 +47,7 @@ pub struct Vm {
     pub ip: *const u8,
     pub stack: Vec<Value>,
     pub stack_top: *mut Value,
+    pub globals: HashMap<String, Value>,
     pub strings: HashSet<String>,
     // pub objects: Option<Box<ObjList>>,
 }
@@ -96,6 +97,7 @@ impl Vm {
             ip: &mut 0,
             stack,
             stack_top: &mut Value::None,
+            globals: HashMap::new(),
             strings: HashSet::new(),
             // objects: Some(Box::new(ObjList {
             // 	value: Rc::new(RefCell::new(ObjString(String::new()))),
@@ -160,6 +162,10 @@ impl Vm {
         self.chunk.as_ref().unwrap().constants[const_location]
     }
 
+    fn read_string(&mut self) -> String {
+        self.read_constant().as_rstring()
+    }
+
     fn binary_op(&mut self, op: BinaryOp) {
         if !self.peek(0).is_type(ValueType::Number) || !self.peek(1).is_type(ValueType::Number) {
             self.runtime_error("Operands must be numbers.");
@@ -209,8 +215,6 @@ impl Vm {
             let instruction = OpCode::from(self.read_byte());
             match instruction {
                 OpCode::Return => {
-                    print_value(self.pop());
-                    println!();
                     return Ok(());
                 }
                 OpCode::Constant => {
@@ -255,6 +259,39 @@ impl Vm {
                 OpCode::Not => {
                     let val = is_falsy(self.pop());
                     self.push(val);
+                }
+                OpCode::Print => {
+                    print_value(self.pop());
+                }
+                OpCode::Pop => {
+                    self.pop();
+                }
+                OpCode::DefineGlobal => {
+                    let name = self.read_string();
+                    let value = self.peek(0);
+                    self.globals.insert(name, value);
+                    self.pop();
+                }
+                OpCode::GetGlobal => {
+                    let name = self.read_string();
+                    let value = match self.globals.get(&name) {
+                        Some(n) => n.clone(),
+                        None => {
+                            self.runtime_error(&format!("Undefined varialbe: '{}'.", name));
+                            return Err(VmErr::RuntimeError);
+                        }
+                    };
+                    self.push(value);
+                }
+                OpCode::SetGlobal => {
+                    let name = self.read_string();
+                    let val = self.peek(0);
+                    let result = self.globals.insert(name.clone(), val);
+                    if let None = result {
+                        self.globals.remove_entry(&name);
+                        self.runtime_error(&format!("Undefined variable '{}'.", name));
+                        return Err(VmErr::RuntimeError);
+                    }
                 }
             }
         }

@@ -22,7 +22,6 @@ pub mod chunk {
     pub enum OpCode {
         Return,
         Constant,
-
         Negate,
         Add,
         Subtract,
@@ -35,6 +34,11 @@ pub mod chunk {
         Equal,
         Greater,
         Less,
+        Print,
+        Pop,
+        DefineGlobal,
+        GetGlobal,
+        SetGlobal,
     }
 
     impl From<u8> for OpCode {
@@ -54,6 +58,11 @@ pub mod chunk {
                 11 => OpCode::Equal,
                 12 => OpCode::Greater,
                 13 => OpCode::Less,
+                14 => OpCode::Print,
+                15 => OpCode::Pop,
+                16 => OpCode::DefineGlobal,
+                17 => OpCode::GetGlobal,
+                18 => OpCode::SetGlobal,
                 _ => unreachable!(),
             }
         }
@@ -76,6 +85,11 @@ pub mod chunk {
                 OpCode::Equal => write!(f, "OP_EQUAL"),
                 OpCode::Greater => write!(f, "OP_GREATER"),
                 OpCode::Less => write!(f, "OP_LESS"),
+                OpCode::Print => write!(f, "OP_PRINT"),
+                OpCode::Pop => write!(f, "OP_POP"),
+                OpCode::DefineGlobal => write!(f, "OP_DEFINE_GLOBAL"),
+                OpCode::GetGlobal => write!(f, "OP_GET_GLOBAL"),
+                OpCode::SetGlobal => write!(f, "OP_SET_GLOBAL"),
             }
         }
     }
@@ -152,8 +166,12 @@ pub mod debug {
             | OpCode::Not
             | OpCode::Equal
             | OpCode::Greater
-            | OpCode::Less => simple_instruction(instruction, offset),
-            OpCode::Constant => constant_instruction(instruction, chunk, offset),
+            | OpCode::Less
+            | OpCode::Print
+            | OpCode::Pop => simple_instruction(instruction, offset),
+            OpCode::Constant | OpCode::DefineGlobal | OpCode::GetGlobal | OpCode::SetGlobal => {
+                constant_instruction(instruction, chunk, offset)
+            }
         }
     }
 

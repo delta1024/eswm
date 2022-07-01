@@ -67,7 +67,7 @@ impl Value {
     // 	}
     // }
 
-    pub fn nil() -> Value {
+    pub fn _nil() -> Value {
         Value::None
     }
 
