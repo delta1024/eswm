@@ -262,6 +262,7 @@ impl Vm {
                 }
                 OpCode::Print => {
                     print_value(self.pop());
+		    println!();
                 }
                 OpCode::Pop => {
                     self.pop();
@@ -293,6 +294,16 @@ impl Vm {
                         return Err(VmErr::RuntimeError);
                     }
                 }
+		OpCode::GetLocal => {
+		    let slot = self.read_byte();
+		    let val = self.stack[slot as usize];
+		    self.push(val);
+		}
+		OpCode::SetLocal => {
+		    let slot = self.read_byte();
+		    let val = self.peek(0);
+		    self.stack[slot as usize] = val;
+		}
             }
         }
     }

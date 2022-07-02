@@ -39,6 +39,8 @@ pub mod chunk {
         DefineGlobal,
         GetGlobal,
         SetGlobal,
+	GetLocal,
+	SetLocal,
     }
 
     impl From<u8> for OpCode {
@@ -63,6 +65,8 @@ pub mod chunk {
                 16 => OpCode::DefineGlobal,
                 17 => OpCode::GetGlobal,
                 18 => OpCode::SetGlobal,
+		19 => OpCode::GetLocal,
+		20 => OpCode::SetLocal,
                 _ => unreachable!(),
             }
         }
@@ -90,6 +94,8 @@ pub mod chunk {
                 OpCode::DefineGlobal => write!(f, "OP_DEFINE_GLOBAL"),
                 OpCode::GetGlobal => write!(f, "OP_GET_GLOBAL"),
                 OpCode::SetGlobal => write!(f, "OP_SET_GLOBAL"),
+		OpCode::GetLocal => write!(f, "OP_GET_LOCAL"),
+		OpCode::SetLocal => write!(f, "OP_SET_LOCAL"),
             }
         }
     }
@@ -142,6 +148,12 @@ pub mod debug {
         offset + 2
     }
 
+    fn byte_instruction(code: OpCode, chunk: &Chunk, offset: usize) -> usize {
+	let slot = chunk.code[offset + 1];
+	println!("{:-16} {:4}", code, slot);
+	offset + 2
+    }
+    
     /// Prints code at chunk offset.
     pub fn disassemble_instruction(chunk: &Chunk, offset: usize) -> usize {
         print!("{:04} ", offset);
@@ -172,6 +184,7 @@ pub mod debug {
             OpCode::Constant | OpCode::DefineGlobal | OpCode::GetGlobal | OpCode::SetGlobal => {
                 constant_instruction(instruction, chunk, offset)
             }
+	    OpCode::SetLocal | OpCode::GetLocal => byte_instruction(instruction, chunk, offset),
         }
     }
 

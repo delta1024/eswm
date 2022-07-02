@@ -33,7 +33,10 @@ fn repl() -> io::Result<()> {
         io::stdout().flush()?;
 
         io::stdin().read_line(&mut input)?;
-
+	if input.len() == 0 {
+	    break Ok(());
+	}
+	
         if let Err(_err) = vm.interpret(&input) {
             vm.chunk.take();
         }

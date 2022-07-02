@@ -28,6 +28,8 @@ use eswm_proc::rule;
 mod scanner;
 use scanner::{Scanner, Token, TokenType};
 
+const UINT8_COUNT: usize = u8::MAX as usize + 1;
+
 #[derive(Default, Copy, Clone)]
 struct ParseRule {
     prefix: Option<fn(&mut Parser, bool)>,
@@ -35,6 +37,49 @@ struct ParseRule {
     precedence: Precedence,
 }
 
+fn gen_compiler_stack() -> Vec<Local> {
+    let mut n = Vec::new();
+    n.resize(UINT8_COUNT, Local::default());
+    n
+}
+
+#[derive(Clone)]
+pub struct Local {
+    name: Token,
+    depth: isize,
+}
+
+impl Default for Local {
+    fn default() -> Local {
+	Local {
+	    name: Token::default(),
+	    depth: 0,
+	}
+    }
+}
+
+
+pub struct Compiler {
+    locals: Vec<Local>,
+    local_count: usize,
+    scope_depth: isize,
+}
+
+impl Compiler {
+    pub fn new() -> Compiler {
+	Compiler {
+	    locals: gen_compiler_stack(),
+	    local_count: 0,
+	    scope_depth: 0,
+	}
+    }
+
+    fn mark_initialized(&mut self) {
+	let depth = self.scope_depth;
+	self.locals[self.local_count - 1].depth = depth;
+    }
+
+}
 struct Parser<'a, 'b> {
     current: Option<Token>,
     previous: Option<Token>,
@@ -44,10 +89,11 @@ struct Parser<'a, 'b> {
     had_error: bool,
     panic_mode: bool,
     vm: &'b mut Vm,
+    compiler: &'b mut Compiler,
 }
 
 impl<'a, 'b> Parser<'a, 'b> {
-    fn new(vm: &'b mut Vm, scanner: &'a mut Scanner, chunk: &'b mut Chunk) -> Self {
+    fn new(vm: &'b mut Vm, compiler: &'b mut Compiler, scanner: &'a mut Scanner, chunk: &'b mut Chunk) -> Self {
         Parser {
             current: None,
             previous: None,
@@ -57,6 +103,7 @@ impl<'a, 'b> Parser<'a, 'b> {
             had_error: false,
             panic_mode: false,
             vm,
+	    compiler,
         }
     }
 
@@ -171,18 +218,66 @@ impl<'a, 'b> Parser<'a, 'b> {
     }
 
     fn identifier_constant(&mut self, name: &Token) -> u8 {
-        let value = allocate_string(self.vm, name.string());
+         let value = allocate_string(self.vm, name.string());
         self.make_constant(value)
     }
 
+    fn add_local(&mut self, name: Token) {
+	if self.compiler.local_count == UINT8_COUNT {
+	    self.error("Too many local variables in fuction.");
+	    return;
+	}
+	
+	let mut local = &mut self.compiler.locals[self.compiler.local_count];
+	self.compiler.local_count += 1;
+	local.name = name;
+	local.depth = -1;
+    }
+    
+    fn declare_variable(&mut self) {
+	if self.compiler.scope_depth == 0 {
+	    return;
+	}
+
+	let name = if let Some(ref t) = self.previous {
+	    t.clone()
+	} else {
+	    panic!("Expected Token");
+	};
+
+	let mut i = self.compiler.local_count as isize - 1;
+	while i >= 0 {
+	    let local = &self.compiler.locals[i as usize];
+	    if local.depth != -1 && local.depth < self.compiler.scope_depth {
+		break;
+	    }
+
+	    if identifiers_equal(&name, &local.name){
+		self.error("Already a variable with this name in this scope.");
+	    }
+	    i -= 1;
+	}
+	self.add_local(name);
+    }
+    
     fn parse_variable(&mut self, error_message: &str) -> u8 {
         self.consume(TokenType::Identifier, error_message);
+	self.declare_variable();
+
+	if self.compiler.scope_depth > 0 {
+	    return 0;
+	}
+	
         let token = self.previous.as_ref().unwrap().clone();
         self.identifier_constant(&token)
     }
 
     fn define_variable(&mut self, global: u8) {
-        self.emit_bytes(OpCode::DefineGlobal as u8, global);
+	if self.compiler.scope_depth > 0 {
+	    self.compiler.mark_initialized();
+	    return;
+	}       
+	self.emit_bytes(OpCode::DefineGlobal as u8, global);
     }
 
     fn get_rule(&mut self, id: TokenType) {
@@ -192,6 +287,41 @@ impl<'a, 'b> Parser<'a, 'b> {
         }
         self.rule = Some(&RULES[id as usize]);
     }
+
+    fn begin_scope(&mut self) {
+	self.compiler.scope_depth += 1;
+    }
+
+    fn end_scope(&mut self) {
+	self.compiler.scope_depth -= 1;
+
+	while self.compiler.local_count > 0 && (self.compiler.locals[self.compiler.local_count - 1].depth) as isize > self.compiler.scope_depth {
+	    self.emit_byte(OpCode::Pop as u8);
+	    self.compiler.local_count -= 1;
+	}
+
+    }
+
+    fn resolve_local(&mut self, name: &Token) -> Result<u8, ()> {
+	if self.compiler.local_count == 0 {
+	    return Err(());
+	}
+	
+	let mut i = (self.compiler.local_count - 1) as isize;
+	while i >= 0 {
+	    let local = &self.compiler.locals[i as usize];
+	    if identifiers_equal(name, &local.name) {
+		if local.depth == -1 {
+		    self.error("Can't read variable in its own initializer.");
+		}
+
+		return Ok(i as u8);
+	    }
+	    i -= 1;
+	}
+	Err(())
+    }
+
 
     fn error_at_current(&mut self, message: &str) {
         self.error_at(&self.current.clone().unwrap(), message);
@@ -221,7 +351,9 @@ impl<'a, 'b> Parser<'a, 'b> {
         self.had_error = true;
     }
 }
-
+fn identifiers_equal(a: &Token, b: &Token ) -> bool {
+    a.string() == b.string()
+}
 fn binary(parser: &mut Parser, _can_assign: bool) {
     let operator_id = parser.previous.as_ref().unwrap().id;
     parser.get_rule(operator_id);
@@ -287,13 +419,26 @@ fn variable(parser: &mut Parser, can_assign: bool) {
 }
 
 fn named_variable(parser: &mut Parser, token: &Token, can_assign: bool) {
-    let arg = parser.identifier_constant(token);
+    let get_op: u8;
+    let set_op: u8;
+    let arg: u8;
+
+    if let Ok(v) = parser.resolve_local(token) {
+	arg = v;
+	get_op = OpCode::GetLocal as u8;
+	set_op = OpCode::SetLocal as u8;
+    } else {
+	arg = parser.identifier_constant(token);
+	get_op = OpCode::GetGlobal as u8;
+	set_op = OpCode::SetGlobal as u8;
+    }
+
 
     if can_assign && parser.matches(TokenType::Equal) {
         expression(parser);
-        parser.emit_bytes(OpCode::SetGlobal as u8, arg);
+        parser.emit_bytes(set_op, arg);
     } else {
-        parser.emit_bytes(OpCode::GetGlobal as u8, arg);
+        parser.emit_bytes(get_op, arg);
     }
 }
 
@@ -313,6 +458,14 @@ fn unary(parser: &mut Parser, _can_assign: bool) {
 
 fn expression(parser: &mut Parser) {
     parser.parse_precedence(Precedence::Assignment);
+}
+
+fn block(parser: &mut Parser) {
+    while !parser.check(TokenType::RightBrace) && !parser.check(TokenType::Eof) {
+	decleration(parser);
+    }
+
+    parser.consume(TokenType::RightBrace, "Expect '}' after block.");
 }
 
 fn var_decleration(parser: &mut Parser) {
@@ -347,6 +500,10 @@ fn decleration(parser: &mut Parser) {
 fn statement(parser: &mut Parser) {
     if parser.matches(TokenType::Print) {
         print_statement(parser);
+    } else if parser.matches(TokenType::LeftBrace) {
+	parser.begin_scope();
+	block(parser);
+	parser.end_scope();
     } else {
         expression_statement(parser);
     }
@@ -490,7 +647,8 @@ pub fn compile<'a, 'b>(vm: &'a mut Vm, source: &'b str) -> InterpretResult<Chunk
     let mut source: Vec<char> = source.chars().collect();
     source.push('\0');
     let mut scanner = Scanner::new(&source);
-    let mut parser = Parser::new(vm, &mut scanner, &mut chunk);
+    let mut compiler = Compiler::new();
+    let mut parser = Parser::new(vm, &mut compiler, &mut scanner, &mut chunk);
     parser.advance();
 
     while !parser.matches(TokenType::Eof) {

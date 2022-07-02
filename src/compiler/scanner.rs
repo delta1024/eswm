@@ -72,6 +72,18 @@ pub(super) struct Token {
     pub(super) error_string: Option<String>,
 }
 
+impl Default for Token {
+    fn default() -> Token {
+	Token {
+	    id: TokenType::Error,
+	    start: None,
+	    length: None,
+	    line: 0,
+	    error_string: None,
+	}
+    }
+}
+
 impl Token {
     pub fn string(&self) -> String {
         if self.id != TokenType::Error {
